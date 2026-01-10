@@ -1,0 +1,15 @@
+LOW STOCK ALERT REPORT
+Generated on: 2025-01-24
+
+Item: Fridge
+Current Stock: 1
+Minimum Level: 2
+Required Order: 1
+
+Item: Hwawei
+Current Stock: 2
+Minimum Level: 5
+Required Order: 3
+
+
+Total Low Stock Items: 2

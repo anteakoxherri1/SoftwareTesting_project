@@ -1,0 +1,37 @@
+SALES REPORT
+Period: 2024-12-19 to 2025-01-24
+
+Date: 2025-01-24
+Total Sales: $7300.00
+Number of Bills: 2
+Average Bill Amount: $3650.00
+
+Date: 2025-01-23
+Total Sales: $650.00
+Number of Bills: 1
+Average Bill Amount: $650.00
+
+Date: 2025-01-22
+Total Sales: $12150.00
+Number of Bills: 4
+Average Bill Amount: $3037.50
+
+Date: 2025-01-21
+Total Sales: $33050.00
+Number of Bills: 13
+Average Bill Amount: $2542.31
+
+Date: 2025-01-20
+Total Sales: $650.00
+Number of Bills: 1
+Average Bill Amount: $650.00
+
+Date: 2025-01-19
+Total Sales: $1920.00
+Number of Bills: 2
+Average Bill Amount: $960.00
+
+
+PERIOD SUMMARY
+Total Sales: $55720.00
+Total Days: 6
