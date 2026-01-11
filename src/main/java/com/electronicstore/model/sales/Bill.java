@@ -21,6 +21,13 @@ public class Bill implements Serializable {
         this.items = new ArrayList<>();
         this.totalAmount = 0.0;
     }
+    public Bill(String billNumber, String cashierId, LocalDateTime date, double totalAmount) {
+        this.billNumber = billNumber;
+        this.cashierId = cashierId;
+        this.date = date;
+        this.items = new ArrayList<>();
+        this.totalAmount = totalAmount;
+    }
 
     // Getters and Setters
     public String getBillNumber() { return billNumber; }

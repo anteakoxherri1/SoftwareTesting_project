@@ -21,6 +21,15 @@ public class Cashier extends User implements Serializable {
 
     public String getSector() { return sector; }
     public void setSector(String sector) { this.sector = sector; }
+    public void addBill(Bill bill) {
+        if (bill != null) {
+            this.dailyBills.add(bill);
+        }
+    }
+
+    public void clearBills() {
+        this.dailyBills.clear();
+    }
 
     @Override
     public boolean login(String username, String password) {
