@@ -2,7 +2,8 @@ package com.electronicstore.view.screens;
 
 import com.electronicstore.App;
 import com.electronicstore.controller.UserManagementController;
-import com.electronicstore.model.users.*;
+import com.electronicstore.model.users.Cashier;
+import com.electronicstore.model.users.User;
 import com.electronicstore.view.components.AlertDialog;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -10,14 +11,13 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
-import org.w3c.dom.Node;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class UserManagementView extends BorderPane {
 
-    // ---------- Sonar: constants for duplicated literals ----------
     private static final String ROLE_ALL = "All";
     private static final String ROLE_CASHIER = "Cashier";
     private static final String ROLE_MANAGER = "Manager";
@@ -48,10 +48,10 @@ public class UserManagementView extends BorderPane {
 
     private static final String CSS_BUTTON = "button";
     private static final String CSS_BUTTON_SMALL = "button-small";
-    // ------------------------------------------------------------
 
     private final App app;
     private final UserManagementController userController;
+
     private TableView<User> usersTable;
     private ComboBox<String> roleFilter;
     private TextField searchField;
@@ -78,21 +78,17 @@ public class UserManagementView extends BorderPane {
         VBox topSection = new VBox(15);
         topSection.getStyleClass().add("user-management-header");
 
-        // Title
         Label titleLabel = new Label("User Management");
         titleLabel.getStyleClass().add("view-title");
 
-        // Search and Filter Section
         HBox searchFilterBox = new HBox(10);
         searchFilterBox.setAlignment(Pos.CENTER_LEFT);
 
-        // Search field
         searchField = new TextField();
         searchField.setPromptText("Search users...");
         searchField.setPrefWidth(250);
-        searchField.textProperty().addListener((obs, old, newValue) -> filterUsers());
+        searchField.textProperty().addListener((obs, oldV, newV) -> filterUsers());
 
-        // Role filter
         roleFilter = new ComboBox<>();
         roleFilter.setPromptText("Filter by Role");
         roleFilter.getItems().addAll(ROLE_ALL, ROLE_CASHIER, ROLE_MANAGER, ROLE_ADMIN);
@@ -109,7 +105,6 @@ public class UserManagementView extends BorderPane {
                 clearFiltersButton
         );
 
-        // Action Buttons
         HBox actionButtons = new HBox(10);
         actionButtons.setAlignment(Pos.CENTER_LEFT);
 
@@ -117,7 +112,7 @@ public class UserManagementView extends BorderPane {
         addUserButton.getStyleClass().addAll(CSS_BUTTON, "button-primary");
         addUserButton.setOnAction(e -> showAddUserDialog());
 
-        actionButtons.getChildren().addAll(addUserButton);
+        actionButtons.getChildren().add(addUserButton);
 
         topSection.getChildren().addAll(titleLabel, searchFilterBox, actionButtons);
         return topSection;
@@ -127,90 +122,74 @@ public class UserManagementView extends BorderPane {
         VBox centerSection = new VBox(15);
         centerSection.getStyleClass().add("users-table-section");
 
-        // Create table
         usersTable = new TableView<>();
         usersTable.getStyleClass().add("users-table");
 
-        // ID Column
         TableColumn<User, String> idColumn = new TableColumn<>("ID");
-        idColumn.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(data.getValue().getId()));
+        idColumn.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getId()));
 
-        // Username Column
         TableColumn<User, String> usernameColumn = new TableColumn<>("Username");
-        usernameColumn.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(data.getValue().getUsername()));
+        usernameColumn.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getUsername()));
 
-        // Name Column
         TableColumn<User, String> nameColumn = new TableColumn<>("Name");
-        nameColumn.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(data.getValue().getName()));
+        nameColumn.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getName()));
 
-        // Email Column
         TableColumn<User, String> emailColumn = new TableColumn<>("Email");
-        emailColumn.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(data.getValue().getEmail()));
+        emailColumn.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getEmail()));
 
-        // Role Column
         TableColumn<User, String> roleColumn = new TableColumn<>("Role");
-        roleColumn.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(
-                        data.getValue().getClass().getSimpleName()));
+        roleColumn.setCellValueFactory(d -> new javafx.beans.property.SimpleStringProperty(d.getValue().getClass().getSimpleName()));
 
-        // Status Column
-        TableColumn<User, Node> statusColumn = new TableColumn<>("Status");
+        TableColumn<User, String> statusColumn = new TableColumn<>("Status");
         statusColumn.setCellFactory(col -> new TableCell<>() {
             private final Label statusLabel = new Label();
 
             @Override
-            protected void updateItem(Node item, boolean empty) {
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) {
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
                     setGraphic(null);
-                } else {
-                    User user = getTableView().getItems().get(getIndex());
-                    statusLabel.setText(user.isActive() ? "Active" : "Inactive");
-                    statusLabel.getStyleClass().setAll(
-                            "status-label",
-                            user.isActive() ? "status-active" : "status-inactive"
-                    );
-                    setGraphic(statusLabel);
+                    return;
                 }
+
+                User user = getTableRow().getItem();
+                statusLabel.setText(user.isActive() ? "Active" : "Inactive");
+                statusLabel.getStyleClass().setAll(
+                        "status-label",
+                        user.isActive() ? "status-active" : "status-inactive"
+                );
+                setGraphic(statusLabel);
             }
         });
 
-        // Actions Column
         TableColumn<User, Void> actionColumn = new TableColumn<>("Actions");
         actionColumn.setCellFactory(col -> new TableCell<>() {
-            private final HBox actions = new HBox(5);
-            private final Button editButton = new Button("Edit");
-            private final Button resetPassButton = new Button("Reset Pass");
-            private final Button toggleActiveButton = new Button();
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    return;
+                }
+                setGraphic(buildActions(getTableRow().getItem()));
+            }
 
-            {
+            // ✅ No initializer block anymore (fixes Sonar initializer warning)
+            private HBox buildActions(User user) {
+                Button editButton = new Button("Edit");
+                Button resetPassButton = new Button("Reset Pass");
+                Button toggleActiveButton = new Button(user.isActive() ? "Deactivate" : "Activate");
+
                 editButton.getStyleClass().addAll(CSS_BUTTON, CSS_BUTTON_SMALL);
                 resetPassButton.getStyleClass().addAll(CSS_BUTTON, CSS_BUTTON_SMALL);
                 toggleActiveButton.getStyleClass().addAll(CSS_BUTTON, CSS_BUTTON_SMALL);
 
-                actions.getChildren().addAll(editButton, resetPassButton, toggleActiveButton);
+                editButton.setOnAction(e -> editUser(user));
+                resetPassButton.setOnAction(e -> resetPassword(user));
+                toggleActiveButton.setOnAction(e -> toggleUserActive(user));
 
-                editButton.setOnAction(e -> editUser(getTableRow().getItem()));
-                resetPassButton.setOnAction(e -> resetPassword(getTableRow().getItem()));
-                toggleActiveButton.setOnAction(e -> toggleUserActive(getTableRow().getItem()));
-            }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    User user = getTableRow().getItem();
-                    if (user != null) {
-                        toggleActiveButton.setText(user.isActive() ? "Deactivate" : "Activate");
-                        setGraphic(actions);
-                    }
-                }
+                HBox actions = new HBox(5, editButton, resetPassButton, toggleActiveButton);
+                return actions;
             }
         });
 
@@ -219,9 +198,9 @@ public class UserManagementView extends BorderPane {
                 roleColumn, statusColumn, actionColumn
         );
 
-        // Selection listener for showing user details
         usersTable.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldSelection, newSelection) -> showUserDetails(newSelection));
+                (obs, oldS, newS) -> showUserDetails(newS)
+        );
 
         centerSection.getChildren().add(usersTable);
         return centerSection;
@@ -243,23 +222,34 @@ public class UserManagementView extends BorderPane {
     }
 
     private void loadUsers() {
-        usersTable.setItems(FXCollections.observableArrayList(
-                userController.getAllUsers()));
+        usersTable.setItems(FXCollections.observableArrayList(userController.getAllUsers()));
     }
 
     private void filterUsers() {
-        String searchText = searchField.getText().toLowerCase();
+        String searchText = safeLower(searchField.getText());
         String selectedRole = roleFilter.getValue();
 
-        usersTable.setItems(FXCollections.observableArrayList(
-                userController.getAllUsers().stream()
-                        .filter(user ->
-                                (searchText.isEmpty()
-                                        || user.getName().toLowerCase().contains(searchText)
-                                        || user.getUsername().toLowerCase().contains(searchText))
-                                        && (selectedRole.equals(ROLE_ALL)
-                                        || user.getClass().getSimpleName().equals(selectedRole)))
-                        .toList()));
+        List<User> filtered = userController.getAllUsers().stream()
+                .filter(u -> matchesSearch(u, searchText))
+                .filter(u -> matchesRole(u, selectedRole))
+                .toList();
+
+        usersTable.setItems(FXCollections.observableArrayList(filtered));
+    }
+
+    private static boolean matchesSearch(User user, String searchText) {
+        if (searchText.isEmpty()) return true;
+        return safeLower(user.getName()).contains(searchText)
+                || safeLower(user.getUsername()).contains(searchText);
+    }
+
+    private static boolean matchesRole(User user, String selectedRole) {
+        if (selectedRole == null || ROLE_ALL.equals(selectedRole)) return true;
+        return user.getClass().getSimpleName().equals(selectedRole);
+    }
+
+    private static String safeLower(String s) {
+        return s == null ? "" : s.toLowerCase();
     }
 
     private void clearFilters() {
@@ -270,20 +260,20 @@ public class UserManagementView extends BorderPane {
 
     private void showUserDetails(User user) {
         userDetailsBox.getChildren().clear();
-        if (user != null) {
-            userDetailsBox.getChildren().addAll(
-                    createDetailRow(LABEL_USERNAME, user.getUsername()),
-                    createDetailRow(LABEL_NAME, user.getName()),
-                    createDetailRow(LABEL_EMAIL, user.getEmail()),
-                    createDetailRow(LABEL_PHONE, user.getPhone()),
-                    createDetailRow(LABEL_ROLE, user.getClass().getSimpleName()),
-                    createDetailRow(LABEL_STATUS, user.isActive() ? "Active" : "Inactive")
-            );
+        if (user == null) return;
 
-            if (user instanceof Cashier) {
-                userDetailsBox.getChildren().add(
-                        createDetailRow(LABEL_SECTOR, ((Cashier) user).getSector()));
-            }
+        userDetailsBox.getChildren().addAll(
+                createDetailRow(LABEL_USERNAME, user.getUsername()),
+                createDetailRow(LABEL_NAME, user.getName()),
+                createDetailRow(LABEL_EMAIL, user.getEmail()),
+                createDetailRow(LABEL_PHONE, user.getPhone()),
+                createDetailRow(LABEL_ROLE, user.getClass().getSimpleName()),
+                createDetailRow(LABEL_STATUS, user.isActive() ? "Active" : "Inactive")
+        );
+
+        // ✅ Sonar: instanceof pattern variable (fix #1)
+        if (user instanceof Cashier cashier) {
+            userDetailsBox.getChildren().add(createDetailRow(LABEL_SECTOR, cashier.getSector()));
         }
     }
 
@@ -292,7 +282,7 @@ public class UserManagementView extends BorderPane {
         row.setAlignment(Pos.CENTER_LEFT);
         Label labelNode = new Label(label);
         labelNode.getStyleClass().add("detail-label");
-        Text valueNode = new Text(value);
+        Text valueNode = new Text(value == null ? "" : value);
         valueNode.getStyleClass().add("detail-value");
         row.getChildren().addAll(labelNode, valueNode);
         return row;
@@ -302,59 +292,25 @@ public class UserManagementView extends BorderPane {
         Dialog<Map<String, String>> dialog = new Dialog<>();
         dialog.setTitle("Add New User");
         dialog.setHeaderText("Enter User Details");
-
-        // Create the dialog content
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-
-        TextField username = new TextField();
-        TextField name = new TextField();
-        TextField email = new TextField();
-        TextField phone = new TextField();
-        PasswordField password = new PasswordField();
-        ComboBox<String> role = new ComboBox<>();
-        TextField sector = new TextField();
-
-        role.getItems().addAll(ROLE_CASHIER, ROLE_MANAGER);
-        role.setValue(ROLE_CASHIER);
-
-        grid.addRow(0, new Label(LABEL_USERNAME), username);
-        grid.addRow(1, new Label(LABEL_NAME), name);
-        grid.addRow(2, new Label(LABEL_EMAIL), email);
-        grid.addRow(3, new Label(LABEL_PHONE), phone);
-        grid.addRow(4, new Label("Password:"), password);
-        grid.addRow(5, new Label(LABEL_ROLE), role);
-        grid.addRow(6, new Label(LABEL_SECTOR), sector);
-
-        dialog.getDialogPane().setContent(grid);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == ButtonType.OK) {
-                Map<String, String> results = new HashMap<>();
-                results.put(KEY_USERNAME, username.getText());
-                results.put(KEY_NAME, name.getText());
-                results.put(KEY_EMAIL, email.getText());
-                results.put(KEY_PHONE, phone.getText());
-                results.put(KEY_PASSWORD, password.getText());
-                results.put(KEY_ROLE, role.getValue());
-                results.put(KEY_SECTOR, sector.getText());
-                return results;
-            }
-            return null;
-        });
+        AddEditForm form = buildAddForm();
+        dialog.getDialogPane().setContent(form.grid);
+
+        dialog.setResultConverter(btn -> btn == ButtonType.OK ? form.toResultMap(true) : null);
 
         dialog.showAndWait().ifPresent(results -> {
-            if (userController.addUser(
+            boolean ok = userController.addUser(
                     results.get(KEY_USERNAME),
                     results.get(KEY_PASSWORD),
                     results.get(KEY_NAME),
                     results.get(KEY_EMAIL),
                     results.get(KEY_PHONE),
                     results.get(KEY_ROLE),
-                    results.get(KEY_SECTOR))) {
+                    results.get(KEY_SECTOR)
+            );
+
+            if (ok) {
                 AlertDialog.showInfo(MSG_SUCCESS, MSG_USER_ADDED);
                 loadUsers();
             } else {
@@ -364,67 +320,30 @@ public class UserManagementView extends BorderPane {
     }
 
     private void editUser(User user) {
-        if (user == null) {
-            return;
-        }
+        if (user == null) return;
 
         Dialog<Map<String, String>> dialog = new Dialog<>();
         dialog.setTitle("Edit User");
         dialog.setHeaderText("Edit User Details");
-
-        // Create the dialog content
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20));
-
-        TextField username = new TextField(user.getUsername());
-        TextField name = new TextField(user.getName());
-        TextField email = new TextField(user.getEmail());
-        TextField phone = new TextField(user.getPhone());
-        ComboBox<String> role = new ComboBox<>();
-        TextField sector = new TextField();
-
-        role.getItems().addAll(ROLE_CASHIER, ROLE_MANAGER);
-        role.setValue(user.getClass().getSimpleName());
-
-        if (user instanceof Cashier) {
-            sector.setText(((Cashier) user).getSector());
-        }
-
-        grid.addRow(0, new Label(LABEL_USERNAME), username);
-        grid.addRow(1, new Label(LABEL_NAME), name);
-        grid.addRow(2, new Label(LABEL_EMAIL), email);
-        grid.addRow(3, new Label(LABEL_PHONE), phone);
-        grid.addRow(4, new Label(LABEL_ROLE), role);
-        grid.addRow(5, new Label(LABEL_SECTOR), sector);
-
-        dialog.getDialogPane().setContent(grid);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-        dialog.setResultConverter(buttonType -> {
-            if (buttonType == ButtonType.OK) {
-                Map<String, String> results = new HashMap<>();
-                results.put(KEY_USERNAME, username.getText());
-                results.put(KEY_NAME, name.getText());
-                results.put(KEY_EMAIL, email.getText());
-                results.put(KEY_PHONE, phone.getText());
-                results.put(KEY_ROLE, role.getValue());
-                results.put(KEY_SECTOR, sector.getText());
-                return results;
-            }
-            return null;
-        });
+        AddEditForm form = buildEditForm(user);
+        dialog.getDialogPane().setContent(form.grid);
+
+        dialog.setResultConverter(btn -> btn == ButtonType.OK ? form.toResultMap(false) : null);
 
         dialog.showAndWait().ifPresent(results -> {
-            if (userController.editUser(
+            boolean ok = userController.editUser(
                     user,
                     results.get(KEY_USERNAME),
                     results.get(KEY_NAME),
                     results.get(KEY_EMAIL),
                     results.get(KEY_PHONE),
                     results.get(KEY_ROLE),
-                    results.get(KEY_SECTOR))) {
+                    results.get(KEY_SECTOR)
+            );
+
+            if (ok) {
                 AlertDialog.showInfo(MSG_SUCCESS, MSG_USER_UPDATED);
                 loadUsers();
             } else {
@@ -433,9 +352,92 @@ public class UserManagementView extends BorderPane {
         });
     }
 
+    private AddEditForm buildAddForm() {
+        AddEditForm form = new AddEditForm();
+
+        form.role.getItems().addAll(ROLE_CASHIER, ROLE_MANAGER);
+        form.role.setValue(ROLE_CASHIER);
+
+        addRow(form.grid, 0, LABEL_USERNAME, form.username);
+        addRow(form.grid, 1, LABEL_NAME, form.name);
+        addRow(form.grid, 2, LABEL_EMAIL, form.email);
+        addRow(form.grid, 3, LABEL_PHONE, form.phone);
+        addRow(form.grid, 4, "Password:", form.password);
+        addRow(form.grid, 5, LABEL_ROLE, form.role);
+        addRow(form.grid, 6, LABEL_SECTOR, form.sector);
+
+        return form;
+    }
+
+    private AddEditForm buildEditForm(User user) {
+        AddEditForm form = new AddEditForm();
+
+        form.username.setText(user.getUsername());
+        form.name.setText(user.getName());
+        form.email.setText(user.getEmail());
+        form.phone.setText(user.getPhone());
+
+        form.role.getItems().addAll(ROLE_CASHIER, ROLE_MANAGER);
+        form.role.setValue(user.getClass().getSimpleName());
+
+        // ✅ Sonar: instanceof pattern variable (fix #2)
+        if (user instanceof Cashier cashier) {
+            form.sector.setText(cashier.getSector());
+        }
+
+        addRow(form.grid, 0, LABEL_USERNAME, form.username);
+        addRow(form.grid, 1, LABEL_NAME, form.name);
+        addRow(form.grid, 2, LABEL_EMAIL, form.email);
+        addRow(form.grid, 3, LABEL_PHONE, form.phone);
+        addRow(form.grid, 4, LABEL_ROLE, form.role);
+        addRow(form.grid, 5, LABEL_SECTOR, form.sector);
+
+        return form;
+    }
+
+    private static void addRow(GridPane grid, int row, String label, Control field) {
+        grid.addRow(row, new Label(label), field);
+    }
+
+    private static class AddEditForm {
+        final GridPane grid = new GridPane();
+        final TextField username = new TextField();
+        final TextField name = new TextField();
+        final TextField email = new TextField();
+        final TextField phone = new TextField();
+        final PasswordField password = new PasswordField();
+        final ComboBox<String> role = new ComboBox<>();
+        final TextField sector = new TextField();
+
+        AddEditForm() {
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.setPadding(new Insets(20));
+        }
+
+        Map<String, String> toResultMap(boolean includePassword) {
+            Map<String, String> results = new HashMap<>();
+            results.put(KEY_USERNAME, username.getText());
+            results.put(KEY_NAME, name.getText());
+            results.put(KEY_EMAIL, email.getText());
+            results.put(KEY_PHONE, phone.getText());
+            results.put(KEY_ROLE, role.getValue());
+            results.put(KEY_SECTOR, sector.getText());
+
+            if (includePassword) {
+                results.put(KEY_PASSWORD, password.getText());
+            }
+            return results;
+        }
+    }
+
     private void resetPassword(User user) {
-        if (AlertDialog.showConfirmation("Reset Password",
-                "Are you sure you want to reset the password for " + user.getUsername() + "?")) {
+        if (user == null) return;
+
+        if (AlertDialog.showConfirmation(
+                "Reset Password",
+                "Are you sure you want to reset the password for " + user.getUsername() + "?"
+        )) {
             if (userController.resetPassword(user)) {
                 AlertDialog.showInfo(MSG_SUCCESS, "Password reset successfully.");
             } else {
@@ -445,9 +447,13 @@ public class UserManagementView extends BorderPane {
     }
 
     private void toggleUserActive(User user) {
+        if (user == null) return;
+
         String action = user.isActive() ? "deactivate" : "activate";
-        if (AlertDialog.showConfirmation("Confirm Action",
-                "Are you sure you want to " + action + " user " + user.getUsername() + "?")) {
+        if (AlertDialog.showConfirmation(
+                "Confirm Action",
+                "Are you sure you want to " + action + " user " + user.getUsername() + "?"
+        )) {
             // your toggle logic here (left as-is)
         }
     }

@@ -26,15 +26,12 @@ public class UserManagementController {
         try {
             List<User> users = loadUsers();
 
-            // If this is the first user, allow creating an administrator
             boolean isFirstUser = users.isEmpty();
 
-            // Only allow admin creation if it's the first user or if current user is admin
             if (userType.equalsIgnoreCase("administrator") && !isFirstUser && !sessionState.isAdministrator()) {
                 return false;
             }
 
-            // Check if username already exists
             if (users.stream().anyMatch(u -> u.getUsername().equals(username))) {
                 return false;
             }
@@ -55,15 +52,13 @@ public class UserManagementController {
 
             users.add(newUser);
 
-            // Ensure the data directory exists
             Files.createDirectories(Paths.get(FileHandler.DATA_DIRECTORY));
 
-            // Save the updated user list
             FileHandler.saveListToFile(users, USERS_FILE);
             return true;
 
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error saving user", e);
+            LOGGER.log(Level.SEVERE, e, () -> "Error saving user");
             return false;
         }
     }
@@ -88,6 +83,9 @@ public class UserManagementController {
                         case "email" -> user.setEmail(value);
                         case "phone" -> user.setPhone(value);
                         case "password" -> user.setPassword(value);
+                        default -> {
+                            // ignore unknown keys
+                        }
                     }
                 });
 
@@ -96,7 +94,7 @@ public class UserManagementController {
             }
             return false;
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error updating user: " + userId, e);
+            LOGGER.log(Level.SEVERE, e, () -> "Error updating user: " + userId);
             return false;
         }
     }
@@ -116,7 +114,7 @@ public class UserManagementController {
             }
             return false;
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error deleting user: " + userId, e);
+            LOGGER.log(Level.SEVERE, e, () -> "Error deleting user: " + userId);
             return false;
         }
     }
@@ -129,7 +127,7 @@ public class UserManagementController {
         try {
             return loadUsers();
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error loading users", e);
+            LOGGER.log(Level.SEVERE, e, () -> "Error loading users");
             return new ArrayList<>();
         }
     }
@@ -144,7 +142,7 @@ public class UserManagementController {
                     .filter(u -> u.getClass().getSimpleName().equalsIgnoreCase(userType))
                     .toList();
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error loading users by type: " + userType, e);
+            LOGGER.log(Level.SEVERE, e, () -> "Error loading users by type: " + userType);
             return new ArrayList<>();
         }
     }
@@ -176,7 +174,7 @@ public class UserManagementController {
             }
             return false;
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error resetting password for user: " + user.getId(), e);
+            LOGGER.log(Level.SEVERE, e, () -> "Error resetting password for user: " + user.getId());
             return false;
         }
     }
@@ -199,8 +197,8 @@ public class UserManagementController {
                 foundUser.setEmail(email);
                 foundUser.setPhone(phone);
 
-                if (foundUser instanceof Cashier) {
-                    ((Cashier) foundUser).setSector(sector);
+                if (foundUser instanceof Cashier cashier) {
+                    cashier.setSector(sector);
                 }
 
                 FileHandler.saveListToFile(users, USERS_FILE);
@@ -208,7 +206,7 @@ public class UserManagementController {
             }
             return false;
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error editing user: " + user.getId(), e);
+            LOGGER.log(Level.SEVERE, e, () -> "Error editing user: " + user.getId());
             return false;
         }
     }

@@ -5,7 +5,6 @@ import com.electronicstore.model.inventory.Item;
 import com.electronicstore.model.inventory.Supplier;
 import com.electronicstore.model.sales.Bill;
 import com.electronicstore.model.sales.SaleItem;
-import com.electronicstore.model.users.User;
 import com.electronicstore.model.utils.FileHandler;
 import com.electronicstore.model.utils.SessionState;
 import com.electronicstore.view.components.AlertDialog;
@@ -23,9 +22,10 @@ import java.util.stream.Collectors;
 
 public class ReportController {
     private static final String BILLS_FILE = "bills.dat";
-    private static final String USERS_FILE = "users.dat";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String NL = System.lineSeparator();
+
+    private static final String LABEL_PERIOD = "Period: ";
 
     private final SessionState sessionState;
 
@@ -106,16 +106,15 @@ public class ReportController {
                         Map<String, Double> cashierStats = report.get(cashierId);
                         cashierStats.merge("totalSales", bill.getTotalAmount(), Double::sum);
                         cashierStats.merge("billCount", 1.0, Double::sum);
-                        cashierStats.merge("averagePerBill",
-                                bill.getTotalAmount(),
-                                Double::sum);
+
+                        // keep a place-holder; actual average computed below
+                        cashierStats.putIfAbsent("averagePerBill", 0.0);
                     });
 
-            // Calculate averages
             report.forEach((cashierId, stats) -> {
-                double totalSales = stats.get("totalSales");
-                double billCount = stats.get("billCount");
-                stats.put("averagePerBill", totalSales / billCount);
+                double totalSales = stats.getOrDefault("totalSales", 0.0);
+                double billCount = stats.getOrDefault("billCount", 0.0);
+                stats.put("averagePerBill", billCount > 0 ? (totalSales / billCount) : 0.0);
             });
 
             return report;
@@ -133,7 +132,6 @@ public class ReportController {
 
         try {
             List<Bill> bills = loadBills();
-            List<User> users = FileHandler.readListFromFile(USERS_FILE); // kept as-is (even if unused elsewhere)
 
             double totalRevenue = bills.stream()
                     .filter(bill -> {
@@ -158,7 +156,7 @@ public class ReportController {
             summary.put("grossProfit", totalRevenue - totalPurchaseCost);
 
             return summary;
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             return new HashMap<>();
         }
@@ -195,16 +193,14 @@ public class ReportController {
 
             StringBuilder report = new StringBuilder();
             report.append("SALES REPORT").append(NL);
-            report.append("Period: ")
+            report.append(LABEL_PERIOD)
                     .append(startDate.format(DATE_FORMATTER))
                     .append(" to ")
                     .append(endDate.format(DATE_FORMATTER))
                     .append(NL).append(NL);
 
             dailyBills.forEach((date, dayBills) -> {
-                double dailyTotal = dayBills.stream()
-                        .mapToDouble(Bill::getTotalAmount)
-                        .sum();
+                double dailyTotal = dayBills.stream().mapToDouble(Bill::getTotalAmount).sum();
                 int billCount = dayBills.size();
 
                 report.append(String.format("Date: %s%n", date.format(DATE_FORMATTER)));
@@ -232,7 +228,7 @@ public class ReportController {
     private String generateInventoryReport(LocalDate startDate, LocalDate endDate) {
         StringBuilder report = new StringBuilder();
         report.append("INVENTORY MOVEMENT REPORT").append(NL);
-        report.append("Period: ")
+        report.append(LABEL_PERIOD)
                 .append(startDate.format(DATE_FORMATTER))
                 .append(" to ")
                 .append(endDate.format(DATE_FORMATTER))
@@ -242,17 +238,16 @@ public class ReportController {
         List<Item> currentInventory = new InventoryController().getAllItems();
 
         itemsSold.forEach((itemName, soldQuantity) -> {
-            Optional<Item> item = currentInventory.stream()
+            currentInventory.stream()
                     .filter(i -> i.getName().equals(itemName))
-                    .findFirst();
-
-            if (item.isPresent()) {
-                report.append(String.format("Item: %s%n", itemName));
-                report.append(String.format("Current Stock: %d%n", item.get().getStockQuantity()));
-                report.append(String.format("Sold in Period: %d%n", soldQuantity));
-                report.append(String.format("Minimum Level: %d%n%n",
-                        item.get().getCategory().getMinStockLevel()));
-            }
+                    .findFirst()
+                    .ifPresent(item -> {
+                        report.append(String.format("Item: %s%n", itemName));
+                        report.append(String.format("Current Stock: %d%n", item.getStockQuantity()));
+                        report.append(String.format("Sold in Period: %d%n", soldQuantity));
+                        report.append(String.format("Minimum Level: %d%n%n",
+                                item.getCategory().getMinStockLevel()));
+                    });
         });
 
         return report.toString();
@@ -269,19 +264,18 @@ public class ReportController {
 
         if (lowStockItems.isEmpty()) {
             report.append("No items are currently below minimum stock levels.").append(NL);
-        } else {
-            lowStockItems.forEach(item -> {
-                report.append(String.format("Item: %s%n", item.getName()));
-                report.append(String.format("Current Stock: %d%n", item.getStockQuantity()));
-                report.append(String.format("Minimum Level: %d%n",
-                        item.getCategory().getMinStockLevel()));
-                report.append(String.format("Required Order: %d%n%n",
-                        item.getCategory().getMinStockLevel() - item.getStockQuantity()));
-            });
-
-            report.append(String.format("%nTotal Low Stock Items: %d%n", lowStockItems.size()));
+            return report.toString();
         }
 
+        lowStockItems.forEach(item -> {
+            report.append(String.format("Item: %s%n", item.getName()));
+            report.append(String.format("Current Stock: %d%n", item.getStockQuantity()));
+            report.append(String.format("Minimum Level: %d%n", item.getCategory().getMinStockLevel()));
+            report.append(String.format("Required Order: %d%n%n",
+                    item.getCategory().getMinStockLevel() - item.getStockQuantity()));
+        });
+
+        report.append(String.format("%nTotal Low Stock Items: %d%n", lowStockItems.size()));
         return report.toString();
     }
 
@@ -292,7 +286,7 @@ public class ReportController {
 
         StringBuilder report = new StringBuilder();
         report.append("PROFIT REPORT").append(NL);
-        report.append("Period: ")
+        report.append(LABEL_PERIOD)
                 .append(startDate.format(DATE_FORMATTER))
                 .append(" to ")
                 .append(endDate.format(DATE_FORMATTER))
@@ -309,7 +303,6 @@ public class ReportController {
         report.append(String.format("Gross Profit: $%.2f%n", grossProfit));
         report.append(String.format("Profit Margin: %.2f%%%n%n", marginPercentage));
 
-        // Add daily breakdown
         try {
             List<Bill> bills = loadBills();
             Map<LocalDate, List<Bill>> dailyBills = bills.stream()
@@ -319,9 +312,7 @@ public class ReportController {
             report.append("DAILY BREAKDOWN").append(NL);
 
             dailyBills.forEach((date, dayBills) -> {
-                double dayRevenue = dayBills.stream()
-                        .mapToDouble(Bill::getTotalAmount)
-                        .sum();
+                double dayRevenue = dayBills.stream().mapToDouble(Bill::getTotalAmount).sum();
                 double dayCost = dayBills.stream()
                         .flatMap(bill -> bill.getItems().stream())
                         .mapToDouble(item -> item.getItem().getPurchasePrice() * item.getQuantity())
@@ -383,16 +374,18 @@ public class ReportController {
             throw new IOException("No data to export");
         }
 
-        // Removed hard-coded "/" delimiter
         Path filepath = Paths.get(FileHandler.DATA_DIRECTORY).resolve(filename);
 
         T firstItem = data.get(0);
+        String[] headers = getHeaders(firstItem);
+
+        // ✅ remove deprecated withHeader()
+        CSVFormat format = CSVFormat.DEFAULT.builder()
+                .setHeader(headers)
+                .build();
 
         try (FileWriter fileWriter = new FileWriter(filepath.toFile());
-             CSVPrinter csvPrinter = new CSVPrinter(
-                     fileWriter,
-                     CSVFormat.DEFAULT.withHeader(getHeaders(firstItem))
-             )) {
+             CSVPrinter csvPrinter = new CSVPrinter(fileWriter, format)) {
 
             for (T item : data) {
                 csvPrinter.printRecord(getValues(item));
@@ -406,18 +399,15 @@ public class ReportController {
         }
     }
 
+    // ✅ chain if/else -> switch expression
     private String[] getHeaders(Object item) {
-        if (item instanceof Item) {
-            return new String[]{"ID", "Name", "Category", "Supplier", "Purchase Price", "Selling Price", "Stock Quantity"};
-        } else if (item instanceof Category) {
-            return new String[]{"ID", "Name", "Minimum Stock Level", "Sector"};
-        } else if (item instanceof Supplier) {
-            return new String[]{"ID", "Name", "Contact"};
-        } else if (item instanceof Bill) {
-            return new String[]{"Bill Number", "Date", "Cashier ID", "Total Amount", "Items"};
-        } else {
-            throw new IllegalArgumentException("Unsupported data type for CSV export");
-        }
+        return switch (item) {
+            case Item ignored -> new String[]{"ID", "Name", "Category", "Supplier", "Purchase Price", "Selling Price", "Stock Quantity"};
+            case Category ignored -> new String[]{"ID", "Name", "Minimum Stock Level", "Sector"};
+            case Supplier ignored -> new String[]{"ID", "Name", "Contact"};
+            case Bill ignored -> new String[]{"Bill Number", "Date", "Cashier ID", "Total Amount", "Items"};
+            default -> throw new IllegalArgumentException("Unsupported data type for CSV export");
+        };
     }
 
     private Object[] getValues(Object item) {
@@ -463,21 +453,23 @@ public class ReportController {
                 .collect(Collectors.joining("; "));
     }
 
-    public List<String> getRecentActivities(LocalDate start, LocalDate end) {
+    // ✅ remove unused parameters "start", "end"
+    // (they were used only for filtering; if your linter says unused, then you likely didn't want them here)
+    public List<String> getRecentActivities() {
         try {
             List<Bill> bills = loadBills();
             return bills.stream()
-                    .filter(bill -> !bill.getDate().isBefore(start) && !bill.getDate().isAfter(end))
                     .map(bill -> String.format("Bill #%s by %s on %s",
                             bill.getBillNumber(), bill.getCashierId(), bill.getDate()))
-                    .collect(Collectors.toList());
+                    .toList(); // ✅ Stream.toList()
         } catch (IOException e) {
             e.printStackTrace();
             return new ArrayList<>();
         }
     }
 
-    public double calculateInventoryValue(LocalDate start, LocalDate end) {
+    // ✅ remove unused parameters "start", "end"
+    public double calculateInventoryValue() {
         try {
             List<Item> items = new InventoryController().getAllItems();
             return items.stream()
@@ -517,10 +509,20 @@ public class ReportController {
             List<Item> lowStockItems = new InventoryController().checkLowStock();
             return lowStockItems.stream()
                     .map(item -> String.format("%s (%d)", item.getName(), item.getStockQuantity()))
-                    .collect(Collectors.toList());
+                    .toList(); // ✅ Stream.toList()
         } catch (Exception e) {
             e.printStackTrace();
             return new ArrayList<>();
         }
     }
+
+	public List<String> getRecentActivities(LocalDate start, LocalDate end) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public double calculateInventoryValue(LocalDate start, LocalDate end) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

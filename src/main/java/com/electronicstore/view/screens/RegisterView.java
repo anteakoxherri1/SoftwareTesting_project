@@ -14,6 +14,14 @@ import javafx.scene.shape.Rectangle;
 import java.io.InputStream;
 
 public class RegisterView extends VBox {
+
+    private static final String USER_TYPE_ADMIN = "Administrator";
+    private static final String USER_TYPE_CASHIER = "Cashier";
+    private static final String USER_TYPE_MANAGER = "Manager";
+
+    private static final String STYLE_INPUT_FIELD = "input-field";
+    private static final String TITLE_VALIDATION_ERROR = "Validation Error";
+
     private final App app;
     private final UserManagementController userController;
 
@@ -25,7 +33,6 @@ public class RegisterView extends VBox {
     private TextField phoneField;
     private ComboBox<String> userTypeCombo;
     private TextField sectorField;
-    private VBox sectorContainer;
 
     public RegisterView(App app) {
         this.app = app;
@@ -40,7 +47,6 @@ public class RegisterView extends VBox {
     }
 
     private void initializeComponents() {
-        // Logo and Title
         VBox formBox = new VBox(15);
         formBox.setAlignment(Pos.CENTER);
         formBox.setMaxWidth(400);
@@ -51,7 +57,6 @@ public class RegisterView extends VBox {
         logoPlaceholder.setArcWidth(10);
         logoPlaceholder.setArcHeight(10);
 
-        // Try to load the logo image
         try {
             InputStream imageStream = getClass().getResourceAsStream("/images/logo.png");
             if (imageStream != null) {
@@ -71,43 +76,36 @@ public class RegisterView extends VBox {
         Label titleLabel = new Label("Create New Account");
         titleLabel.getStyleClass().add("login-title");
 
-        // Create form container
         VBox formContainer = new VBox(10);
         formContainer.setMaxWidth(400);
         formContainer.getStyleClass().add("form");
 
-        // Username field
         usernameField = createFormField("Username", "Enter username");
-
-        // Password fields
         passwordField = createPasswordField("Password", "Enter password");
         confirmPasswordField = createPasswordField("Confirm Password", "Confirm your password");
 
-        // Personal information fields
         nameField = createFormField("Full Name", "Enter your full name");
         emailField = createFormField("Email", "Enter your email");
         phoneField = createFormField("Phone", "Enter your phone number");
 
-        // User type selection
         Label userTypeLabel = new Label("User Type");
         userTypeCombo = new ComboBox<>();
-        userTypeCombo.getItems().addAll("Administrator", "Cashier", "Manager");
+        userTypeCombo.getItems().addAll(USER_TYPE_ADMIN, USER_TYPE_CASHIER, USER_TYPE_MANAGER);
         userTypeCombo.setMaxWidth(Double.MAX_VALUE);
-        userTypeCombo.getStyleClass().add("input-field");
+        userTypeCombo.getStyleClass().add(STYLE_INPUT_FIELD);
 
-        // Sector field (visible only for Cashier)
-        sectorContainer = new VBox(5);
+        // Sector (Cashier only) - LOCAL variable now (fixes warning)
+        VBox sectorContainer = new VBox(5);
         Label sectorLabel = new Label("Sector");
         sectorField = createFormField("", "Enter sector");
         sectorContainer.getChildren().addAll(sectorLabel, sectorField);
         sectorContainer.setVisible(false);
 
-        // Show/hide sector field based on user type selection
         userTypeCombo.setOnAction(e -> {
-            sectorContainer.setVisible(userTypeCombo.getValue().equals("Cashier"));
+            String selected = userTypeCombo.getValue();
+            sectorContainer.setVisible(USER_TYPE_CASHIER.equals(selected));
         });
 
-        // Buttons
         Button registerButton = new Button("Register");
         registerButton.getStyleClass().addAll("button", "button-primary");
         registerButton.setOnAction(e -> handleRegistration());
@@ -116,7 +114,6 @@ public class RegisterView extends VBox {
         backButton.getStyleClass().addAll("button", "button-secondary");
         backButton.setOnAction(e -> app.showLoginScreen());
 
-        // Add all components to form
         formContainer.getChildren().addAll(
                 usernameField,
                 passwordField,
@@ -132,7 +129,6 @@ public class RegisterView extends VBox {
                 backButton
         );
 
-        // Add everything to main container
         getChildren().addAll(
                 formBox,
                 titleLabel,
@@ -143,24 +139,22 @@ public class RegisterView extends VBox {
     private TextField createFormField(String labelText, String promptText) {
         TextField field = new TextField();
         field.setPromptText(promptText);
-        field.getStyleClass().add("input-field");
+        field.getStyleClass().add(STYLE_INPUT_FIELD);
         return field;
     }
 
     private PasswordField createPasswordField(String labelText, String promptText) {
         PasswordField field = new PasswordField();
         field.setPromptText(promptText);
-        field.getStyleClass().add("input-field");
+        field.getStyleClass().add(STYLE_INPUT_FIELD);
         return field;
     }
 
     private void handleRegistration() {
-        // Validate fields
         if (!validateFields()) {
             return;
         }
 
-        // Get all field values
         String username = usernameField.getText();
         String password = passwordField.getText();
         String name = nameField.getText();
@@ -169,7 +163,6 @@ public class RegisterView extends VBox {
         String userType = userTypeCombo.getValue();
         String sector = sectorField.getText();
 
-        // Attempt registration
         boolean success = userController.addUser(
                 username,
                 password,
@@ -177,7 +170,7 @@ public class RegisterView extends VBox {
                 email,
                 phone,
                 userType.toLowerCase(),
-                userType.equals("Cashier") ? sector : null
+                USER_TYPE_CASHIER.equals(userType) ? sector : null
         );
 
         if (success) {
@@ -189,7 +182,6 @@ public class RegisterView extends VBox {
     }
 
     private boolean validateFields() {
-        // Validate required fields
         if (usernameField.getText().isEmpty() ||
                 passwordField.getText().isEmpty() ||
                 confirmPasswordField.getText().isEmpty() ||
@@ -198,31 +190,27 @@ public class RegisterView extends VBox {
                 phoneField.getText().isEmpty() ||
                 userTypeCombo.getValue() == null) {
 
-            AlertDialog.showError("Validation Error", "All fields are required.");
+            AlertDialog.showError(TITLE_VALIDATION_ERROR, "All fields are required.");
             return false;
         }
 
-        // Validate password match
         if (!passwordField.getText().equals(confirmPasswordField.getText())) {
-            AlertDialog.showError("Validation Error", "Passwords do not match.");
+            AlertDialog.showError(TITLE_VALIDATION_ERROR, "Passwords do not match.");
             return false;
         }
 
-        // Validate sector for Cashier
-        if (userTypeCombo.getValue().equals("Cashier") && sectorField.getText().isEmpty()) {
-            AlertDialog.showError("Validation Error", "Sector is required for Cashier.");
+        if (USER_TYPE_CASHIER.equals(userTypeCombo.getValue()) && sectorField.getText().isEmpty()) {
+            AlertDialog.showError(TITLE_VALIDATION_ERROR, "Sector is required for Cashier.");
             return false;
         }
 
-        // Validate email format
         if (!emailField.getText().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            AlertDialog.showError("Validation Error", "Invalid email format.");
+            AlertDialog.showError(TITLE_VALIDATION_ERROR, "Invalid email format.");
             return false;
         }
 
-        // Validate phone number (simple format check)
         if (!phoneField.getText().matches("\\d{10}")) {
-            AlertDialog.showError("Validation Error", "Phone number must be 10 digits.");
+            AlertDialog.showError(TITLE_VALIDATION_ERROR, "Phone number must be 10 digits.");
             return false;
         }
 
