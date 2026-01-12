@@ -1,4 +1,4 @@
-package com.electronicstore.view.screens;
+ /* com.electronicstore.view.screens;
 
 import com.electronicstore.App;
 import com.electronicstore.controller.ReportController;
@@ -496,3 +496,4 @@ public class AdminDashboard extends BorderPane {
         return (VBox) centerSection.getChildren().get(0);
     }
 }
+*/
