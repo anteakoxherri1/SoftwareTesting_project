@@ -1,4 +1,4 @@
-package com.electronicstore.view.screens;
+/*package com.electronicstore.view.screens;
 
 import com.electronicstore.App;
 import com.electronicstore.controller.UserManagementController;
@@ -458,3 +458,4 @@ public class UserManagementView extends BorderPane {
         }
     }
 }
+*/

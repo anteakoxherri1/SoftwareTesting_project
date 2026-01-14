@@ -1,4 +1,4 @@
-package com.electronicstore.view.components;
+/*package com.electronicstore.view.components;
 
 import com.electronicstore.App;
 import com.electronicstore.model.utils.SessionState;
@@ -131,3 +131,4 @@ public class CustomMenuBar extends MenuBar {
         return null;
     }
 }
+*/

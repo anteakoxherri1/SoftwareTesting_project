@@ -5,13 +5,14 @@ import com.electronicstore.model.sales.Bill;
 import com.electronicstore.model.sales.SaleItem;
 import com.electronicstore.model.utils.FileHandler;
 import com.electronicstore.model.utils.SessionState;
-import java.io.IOException;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class BillingController {
+
     private static final String BILLS_FILE = "bills.dat";
     private final SessionState sessionState;
     private Bill currentBill;
@@ -24,19 +25,15 @@ public class BillingController {
         if (!sessionState.isCashier()) {
             throw new IllegalStateException("Only cashiers can create bills");
         }
+
         String billNumber = "B" + UUID.randomUUID().toString().substring(0, 8);
         currentBill = new Bill(billNumber, sessionState.getCurrentUser().getId());
         return currentBill;
     }
 
     public boolean addItemToBill(Item item, int quantity) {
-        if (currentBill == null) {
-            return false;
-        }
-
-        if (!item.checkAvailability(quantity)) {
-            return false;
-        }
+        if (currentBill == null) return false;
+        if (!item.checkAvailability(quantity)) return false;
 
         SaleItem saleItem = new SaleItem(item, quantity);
         currentBill.addItem(saleItem);
@@ -45,9 +42,7 @@ public class BillingController {
     }
 
     public boolean removeItemFromBill(SaleItem saleItem) {
-        if (currentBill == null) {
-            return false;
-        }
+        if (currentBill == null) return false;
 
         currentBill.removeItem(saleItem);
         saleItem.getItem().updateStock(saleItem.getQuantity());
@@ -63,43 +58,35 @@ public class BillingController {
             return false;
         }
 
-        try {
-            List<Bill> bills = loadBills();
-            bills.add(currentBill);
-            FileHandler.saveListToFile(bills, BILLS_FILE);
+        List<Bill> bills = loadBills();
+        bills.add(currentBill);
 
-            FileHandler.exportBill(currentBill);
+        // ✅ FIX 1: renditja e saktë e parametrave
+        FileHandler.saveListToFile(BILLS_FILE, bills);
 
-            Bill finalizedBill = currentBill;
-            currentBill = null;
+        // ✅ FIX 2: eksport korrekt i faturës
+        FileHandler.exportBillToTextFile(
+                currentBill.getBillNumber(),
+                currentBill.toString()
+        );
 
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+        currentBill = null;
+        return true;
     }
 
     public List<Bill> getDailyBills() {
-        try {
-            List<Bill> allBills = loadBills();
-            return allBills.stream()
-                    .filter(bill -> bill.getDate().equals(LocalDate.now()))
-                    .filter(bill -> bill.getCashierId().equals(
-                            sessionState.getCurrentUser().getId()))
-                    .toList();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        List<Bill> allBills = loadBills();
+
+        return allBills.stream()
+                .filter(bill -> bill.getDate().equals(LocalDate.now()))
+                .filter(bill -> bill.getCashierId().equals(
+                        sessionState.getCurrentUser().getId()))
+                .toList();
     }
 
-    private List<Bill> loadBills() throws IOException {
-        try {
-            return FileHandler.readListFromFile(BILLS_FILE);
-        } catch (IOException | ClassNotFoundException e) {
-            return new ArrayList<>();
-        }
+    private List<Bill> loadBills() {
+        // ✅ FIX 3: pa try-catch të panevojshëm
+        return FileHandler.readListFromFile(BILLS_FILE);
     }
 
     public Bill getCurrentBill() {

@@ -3,208 +3,169 @@ package com.electronicstore.controller;
 import com.electronicstore.model.inventory.*;
 import com.electronicstore.model.utils.FileHandler;
 import com.electronicstore.model.utils.SessionState;
-import java.io.IOException;
+
 import java.time.LocalDate;
 import java.util.*;
 
 public class InventoryController {
+
     private static final String ITEMS_FILE = "items.dat";
     private static final String CATEGORIES_FILE = "categories.dat";
     private static final String SUPPLIERS_FILE = "suppliers.dat";
+
     private final SessionState sessionState;
 
     public InventoryController() {
         this.sessionState = SessionState.getInstance();
     }
 
-    // Item management
+    // ======================
+    // ITEM MANAGEMENT
+    // ======================
     public boolean addItem(String name, Category category, Supplier supplier,
                            double purchasePrice, double sellingPrice, int quantity) {
+
         if (!sessionState.isManager()) {
             return false;
         }
 
-        try {
-            List<Item> items = loadItems();
-            String itemId = "I" + UUID.randomUUID().toString().substring(0, 8);
+        List<Item> items = loadItems();
+        String itemId = "I" + UUID.randomUUID().toString().substring(0, 8);
 
-            Item newItem = new Item(itemId, name, category, supplier,
-                    LocalDate.now(), purchasePrice,
-                    sellingPrice, quantity);
-            items.add(newItem);
+        Item newItem = new Item(
+                itemId,
+                name,
+                category,
+                supplier,
+                LocalDate.now(),
+                purchasePrice,
+                sellingPrice,
+                quantity
+        );
 
-            FileHandler.saveListToFile(items, ITEMS_FILE);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+        items.add(newItem);
+        FileHandler.saveListToFile(ITEMS_FILE, items);
+        return true;
     }
 
     public boolean updateItemStock(String itemId, int quantity) {
-        try {
-            List<Item> items = loadItems();
-            Optional<Item> item = items.stream()
-                    .filter(i -> i.getId().equals(itemId))
-                    .findFirst();
+        List<Item> items = loadItems();
 
-            if (item.isPresent()) {
-                if (item.get().updateStock(quantity)) {
-                    FileHandler.saveListToFile(items, ITEMS_FILE);
+        for (Item item : items) {
+            if (item.getId().equals(itemId)) {
+                if (item.updateStock(quantity)) {
+                    FileHandler.saveListToFile(ITEMS_FILE, items);
                     return true;
                 }
+                return false;
             }
-            return false;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
         }
+        return false;
     }
 
-    // Category management
+    // ======================
+    // CATEGORY MANAGEMENT
+    // ======================
     public boolean addCategory(String name, int minStockLevel, String sector) {
         if (!sessionState.isManager()) {
             return false;
         }
 
-        try {
-            List<Category> categories = loadCategories();
-            String categoryId = "C" + UUID.randomUUID().toString().substring(0, 8);
+        List<Category> categories = loadCategories();
+        String categoryId = "C" + UUID.randomUUID().toString().substring(0, 8);
 
-            Category newCategory = new Category(categoryId, name, minStockLevel, sector);
-            categories.add(newCategory);
+        Category newCategory = new Category(categoryId, name, minStockLevel, sector);
+        categories.add(newCategory);
 
-            FileHandler.saveListToFile(categories, CATEGORIES_FILE);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+        FileHandler.saveListToFile(CATEGORIES_FILE, categories);
+        return true;
     }
 
-    // Supplier management
+    // ======================
+    // SUPPLIER MANAGEMENT
+    // ======================
     public boolean addSupplier(String name, String contact) {
         if (!sessionState.isManager()) {
             return false;
         }
 
-        try {
-            List<Supplier> suppliers = loadSuppliers();
-            String supplierId = "S" + UUID.randomUUID().toString().substring(0, 8);
+        List<Supplier> suppliers = loadSuppliers();
+        String supplierId = "S" + UUID.randomUUID().toString().substring(0, 8);
 
-            Supplier newSupplier = new Supplier(supplierId, name, contact);
-            suppliers.add(newSupplier);
+        Supplier newSupplier = new Supplier(supplierId, name, contact);
+        suppliers.add(newSupplier);
 
-            FileHandler.saveListToFile(suppliers, SUPPLIERS_FILE);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+        FileHandler.saveListToFile(SUPPLIERS_FILE, suppliers);
+        return true;
     }
 
-    // Stock alerts
+    // ======================
+    // STOCK ALERTS
+    // ======================
     public List<Item> checkLowStock() {
-        try {
-            List<Item> items = loadItems();
-            List<Category> categories = loadCategories();
+        List<Item> items = loadItems();
 
-            return items.stream()
-                    .filter(item -> {
-                        Category category = item.getCategory();
-                        return item.getStockQuantity() <= category.getMinStockLevel();
-                    })
-                    .toList();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        return items.stream()
+                .filter(item ->
+                        item.getStockQuantity()
+                                <= item.getCategory().getMinStockLevel())
+                .toList();
     }
 
-    // Load data methods
-    private List<Item> loadItems() throws IOException {
-        try {
-            return FileHandler.readListFromFile(ITEMS_FILE);
-        } catch (IOException | ClassNotFoundException e) {
-            return new ArrayList<>();
-        }
+    // ======================
+    // LOADERS (NO EXCEPTIONS)
+    // ======================
+    private List<Item> loadItems() {
+        return FileHandler.readListFromFile(ITEMS_FILE);
     }
 
-    private List<Category> loadCategories() throws IOException {
-        try {
-            return FileHandler.readListFromFile(CATEGORIES_FILE);
-        } catch (IOException | ClassNotFoundException e) {
-            return new ArrayList<>();
-        }
+    private List<Category> loadCategories() {
+        return FileHandler.readListFromFile(CATEGORIES_FILE);
     }
 
-    private List<Supplier> loadSuppliers() throws IOException {
-        try {
-            return FileHandler.readListFromFile(SUPPLIERS_FILE);
-        } catch (IOException | ClassNotFoundException e) {
-            return new ArrayList<>();
-        }
+    private List<Supplier> loadSuppliers() {
+        return FileHandler.readListFromFile(SUPPLIERS_FILE);
     }
 
+    // ======================
+    // GETTERS
+    // ======================
     public List<Item> getAvailableItems() {
-        try {
-            return loadItems().stream()
-                    .filter(item -> item.getStockQuantity() > 0)
-                    .toList();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        return loadItems().stream()
+                .filter(item -> item.getStockQuantity() > 0)
+                .toList();
     }
 
     public List<Category> getAllCategories() {
-        try {
-            return loadCategories();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        return loadCategories();
     }
 
     public List<Supplier> getAllSuppliers() {
-        try {
-            return loadSuppliers();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        return loadSuppliers();
     }
 
     public List<Item> getAllItems() {
-        try {
-            return loadItems();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
+        return loadItems();
     }
 
+    // ======================
+    // UPDATE & DELETE
+    // ======================
     public boolean updateItem(Item item) {
         if (!sessionState.isManager()) {
             return false;
         }
 
-        try {
-            List<Item> items = loadItems();
+        List<Item> items = loadItems();
 
-            // Find and replace the item
-            for (int i = 0; i < items.size(); i++) {
-                if (items.get(i).getId().equals(item.getId())) {
-                    items.set(i, item);
-                    FileHandler.saveListToFile(items, ITEMS_FILE);
-                    return true;
-                }
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i).getId().equals(item.getId())) {
+                items.set(i, item);
+                FileHandler.saveListToFile(ITEMS_FILE, items);
+                return true;
             }
-            return false;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
         }
+        return false;
     }
 
     public boolean deleteItem(String id) {
@@ -212,16 +173,13 @@ public class InventoryController {
             return false;
         }
 
-        try {
-            List<Item> items = loadItems();
-            items.removeIf(item -> item.getId().equals(id));
+        List<Item> items = loadItems();
+        boolean removed = items.removeIf(item -> item.getId().equals(id));
 
-            FileHandler.saveListToFile(items, ITEMS_FILE);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
+        if (removed) {
+            FileHandler.saveListToFile(ITEMS_FILE, items);
         }
+        return removed;
     }
 
     public void deleteCategory(Category category) {
@@ -229,13 +187,9 @@ public class InventoryController {
             return;
         }
 
-        try {
-            List<Category> categories = loadCategories();
-            categories.removeIf(c -> c.getId().equals(category.getId()));
+        List<Category> categories = loadCategories();
+        categories.removeIf(c -> c.getId().equals(category.getId()));
 
-            FileHandler.saveListToFile(categories, CATEGORIES_FILE);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        FileHandler.saveListToFile(CATEGORIES_FILE, categories);
     }
 }

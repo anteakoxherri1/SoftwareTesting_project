@@ -1,4 +1,4 @@
-package com.electronicstore.view.screens;
+/*package com.electronicstore.view.screens;
 
 import com.electronicstore.App;
 import com.electronicstore.controller.BillingController;
@@ -327,3 +327,4 @@ public class CashierDashboard extends BorderPane {
         dialog.show();
     }
 }
+*/

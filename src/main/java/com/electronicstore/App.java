@@ -1,4 +1,4 @@
-package com.electronicstore;
+/*package com.electronicstore;
 
 import com.electronicstore.model.users.User;
 import com.electronicstore.model.utils.SessionState;
@@ -143,3 +143,4 @@ public class App extends Application {
         return sessionState.getCurrentUser();
     }
 }
+*/

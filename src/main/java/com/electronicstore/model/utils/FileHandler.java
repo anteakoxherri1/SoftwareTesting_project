@@ -1,111 +1,82 @@
 package com.electronicstore.model.utils;
 
-import com.electronicstore.model.sales.Bill;
-
 import java.io.*;
 import java.nio.file.*;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 public class FileHandler {
-    public static final String DATA_DIRECTORY = "store_data";
 
-    // Avoid hard-coded delimiters by using Path/resolve
-    private static final Path DATA_PATH = Paths.get(DATA_DIRECTORY);
-    private static final Path BILLS_PATH = DATA_PATH.resolve("bills");
+    // Directory 
+    public static final Path DATA_DIRECTORY = Paths.get("data");
 
     static {
         try {
-            // Create necessary directories 
-            Files.createDirectories(DATA_PATH);
-            Files.createDirectories(BILLS_PATH);
+            if (!Files.exists(DATA_DIRECTORY)) {
+                Files.createDirectories(DATA_DIRECTORY);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create data directory", e);
+        }
+    }
+
+    // ==============================
+    // GENERIC SAVE
+    // ==============================
+    public static <T> void saveListToFile(String fileName, List<T> list) {
+        Path filePath = DATA_DIRECTORY.resolve(fileName);
+
+        try (ObjectOutputStream oos =
+                     new ObjectOutputStream(Files.newOutputStream(filePath))) {
+
+            oos.writeObject(list);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    // Generic method to save object to binary file
-    public static <T extends Serializable> void saveToFile(T object, String filename)
-            throws IOException {
-        Path filepath = DATA_PATH.resolve(filename);
-        try (ObjectOutputStream oos = new ObjectOutputStream(
-                new FileOutputStream(filepath.toFile()))) {
-            oos.writeObject(object);
-        }
-    }
-
-    // Generic method to read object from binary file
+    // ==============================
+    // GENERIC READ
+    // ==============================
     @SuppressWarnings("unchecked")
-    public static <T extends Serializable> T readFromFile(String filename)
-            throws IOException, ClassNotFoundException {
-        Path filepath = DATA_PATH.resolve(filename);
-        try (ObjectInputStream ois = new ObjectInputStream(
-                new FileInputStream(filepath.toFile()))) {
-            return (T) ois.readObject();
+    public static <T> List<T> readListFromFile(String fileName) {
+        Path filePath = DATA_DIRECTORY.resolve(fileName);
+
+        if (!Files.exists(filePath)) {
+            return new ArrayList<>();
         }
-    }
 
-    // Method to save list of objects to binary file
-    public static <T extends Serializable> void saveListToFile(List<T> list, String filename)
-            throws IOException {
-        Path filepath = DATA_PATH.resolve(filename);
-        System.out.println("Saving to file: " + filepath);
-        try (ObjectOutputStream oos = new ObjectOutputStream(
-                new FileOutputStream(filepath.toFile()))) {
-            oos.writeObject(list);
-            System.out.println("Successfully saved " + list.size() + " items");
-        }
-    }
+        try (ObjectInputStream ois =
+                     new ObjectInputStream(Files.newInputStream(filePath))) {
 
-    // Method to read list of objects from binary file
-    @SuppressWarnings("unchecked")
-    public static <T extends Serializable> List<T> readListFromFile(String filename)
-            throws IOException, ClassNotFoundException {
-        return (List<T>) readFromFile(filename);
-    }
+            Object obj = ois.readObject();
+            return (List<T>) obj;
 
-    // Method to export bill to text file
-    public static void exportBill(Bill bill) throws IOException {
-        String fileName = bill.getBillNumber() + "_" + bill.getDateTime().toLocalDate() + ".txt";
-        Path billPath = BILLS_PATH.resolve(fileName);
-
-        String billContent = bill.generatePrintableFormat();
-        Files.write(
-                billPath,
-                billContent.getBytes(),
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING
-        );
-    }
-
-    // Method to save data to text file
-    public static void saveToTextFile(String content, String filename) throws IOException {
-        Path filepath = DATA_PATH.resolve(filename);
-        Files.write(
-                filepath,
-                content.getBytes(),
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING
-        );
-    }
-
-    // Method to read data from text file
-    public static String readFromTextFile(String filename) throws IOException {
-        Path filepath = DATA_PATH.resolve(filename);
-        return Files.readString(filepath);
-    }
-
-    // Method to list all files in a directory
-    public static List<String> listFiles(String directory) {
-        Path dirPath = DATA_PATH.resolve(directory);
-        try {
-            return Files.list(dirPath)
-                    .map(Path::getFileName)
-                    .map(Path::toString)
-                    .toList();
-        } catch (IOException e) {
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
             return new ArrayList<>();
+        }
+    }
+
+    // ==============================
+    // EXPORT BILL AS TXT
+    // ==============================
+    public static void exportBillToTextFile(String billId, String content) {
+        Path billsDir = DATA_DIRECTORY.resolve("bills");
+
+        try {
+            if (!Files.exists(billsDir)) {
+                Files.createDirectories(billsDir);
+            }
+
+            Path billFile = billsDir.resolve(billId + ".txt");
+            Files.writeString(billFile, content,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
