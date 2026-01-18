@@ -3,11 +3,13 @@ package com.electronicstore.model.sales;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Bill implements Serializable {
     private static final long serialVersionUID = 1L;
+
     private String billNumber;
     private LocalDateTime date;
     private String cashierId;
@@ -21,6 +23,7 @@ public class Bill implements Serializable {
         this.items = new ArrayList<>();
         this.totalAmount = 0.0;
     }
+
     public Bill(String billNumber, String cashierId, LocalDateTime date, double totalAmount) {
         this.billNumber = billNumber;
         this.cashierId = cashierId;
@@ -30,18 +33,37 @@ public class Bill implements Serializable {
     }
 
     // Getters and Setters
-    public String getBillNumber() { return billNumber; }
-    public void setBillNumber(String billNumber) { this.billNumber = billNumber; }
+    public String getBillNumber() {
+        return billNumber;
+    }
 
-    public LocalDateTime getDateTime() { return date; }
-    public LocalDate getDate() { return date.toLocalDate(); }
+    public void setBillNumber(String billNumber) {
+        this.billNumber = billNumber;
+    }
 
-    public String getCashierId() { return cashierId; }
-    public void setCashierId(String cashierId) { this.cashierId = cashierId; }
+    public LocalDateTime getDateTime() {
+        return date;
+    }
 
-    public List<SaleItem> getItems() { return new ArrayList<>(items); }
+    public LocalDate getDate() {
+        return date.toLocalDate();
+    }
 
-    public double getTotalAmount() { return totalAmount; }
+    public String getCashierId() {
+        return cashierId;
+    }
+
+    public void setCashierId(String cashierId) {
+        this.cashierId = cashierId;
+    }
+
+    public List<SaleItem> getItems() {
+        return new ArrayList<>(items);
+    }
+
+    public double getTotalAmount() {
+        return totalAmount;
+    }
 
     // Business Methods
     public void addItem(SaleItem item) {
@@ -60,30 +82,36 @@ public class Bill implements Serializable {
                 .sum();
     }
 
+    // ✅ FIXED: proper printable format with real new lines
     public String generatePrintableFormat() {
+        String nl = System.lineSeparator();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
         StringBuilder sb = new StringBuilder();
-        sb.append("=================================%n");
-        sb.append("         ELECTRONIC STORE        %n");
-        sb.append("=================================%n");
-        sb.append(String.format("Bill Number: %s%n", billNumber));
-        sb.append(String.format("Date: %s%n", date));
-        sb.append(String.format("Cashier ID: %s%n", cashierId));
-        sb.append("---------------------------------%n");
-        sb.append("Items:%n");
 
-        items.forEach(item ->
-                sb.append(String.format(
-                        "%s x%d = $%.2f%n",
-                        item.getItem().getName(),
-                        item.getQuantity(),
-                        item.calculateSubtotal()
-                ))
-        );
+        sb.append("=================================").append(nl);
+        sb.append("         ELECTRONIC STORE        ").append(nl);
+        sb.append("=================================").append(nl);
+        sb.append("Bill Number: ").append(billNumber).append(nl);
+        sb.append("Date: ").append(date.format(formatter)).append(nl);
+        sb.append("Cashier ID: ").append(cashierId).append(nl);
+        sb.append("---------------------------------").append(nl);
+        sb.append("Items:").append(nl);
 
-        sb.append("---------------------------------%n");
-        sb.append(String.format("Total Amount: $%.2f%n", totalAmount));
-        sb.append("=================================%n");
-        sb.append("Thank you for shopping with us!%n");
+        for (SaleItem item : items) {
+            sb.append(item.getItem().getName())
+              .append(" x").append(item.getQuantity())
+              .append(" = $")
+              .append(String.format("%.2f", item.calculateSubtotal()))
+              .append(nl);
+        }
+
+        sb.append("---------------------------------").append(nl);
+        sb.append("Total Amount: $")
+          .append(String.format("%.2f", totalAmount))
+          .append(nl);
+        sb.append("=================================").append(nl);
+        sb.append("Thank you for shopping with us!").append(nl);
 
         return sb.toString();
     }

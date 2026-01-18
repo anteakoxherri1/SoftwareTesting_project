@@ -135,10 +135,18 @@ public class SupplierManagementDialog extends DialogPane {
 
         if (AlertDialog.showConfirmation("Confirm Delete",
                 "Are you sure you want to delete this supplier?")) {
-            // Add delete functionality in controller
-            refreshTable();
+
+            boolean success = inventoryController.deleteSupplier(supplier.getId());
+
+            if (success) {
+                AlertDialog.showInfo("Success", "Supplier deleted successfully");
+                refreshTable();
+            } else {
+                AlertDialog.showError("Error", "Failed to delete supplier");
+            }
         }
     }
+
 
     private void refreshTable() {
         supplierTable.setItems(FXCollections.observableArrayList(

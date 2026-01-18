@@ -2,16 +2,19 @@ package com.electronicstore.model.users;
 
 import java.io.Serializable;
 
-public abstract class User  implements Serializable {
+public abstract class User implements Serializable {
     private static final long serialVersionUID = 1L;
+
     private String id;
     private String username;
     private String password;
     private String name;
     private String email;
     private String phone;
+    private boolean active = true; // default active
 
-    public User(String id, String username, String password, String name, String email, String phone) {
+    public User(String id, String username, String password,
+                String name, String email, String phone) {
         this.id = id;
         this.username = username;
         this.password = password;
@@ -20,7 +23,7 @@ public abstract class User  implements Serializable {
         this.phone = phone;
     }
 
-    // Getters and Setters
+    // Getters & setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -39,12 +42,17 @@ public abstract class User  implements Serializable {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
-    // Abstract methods that must be implemented by subclasses
+    // Active status
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    // Abstract methods
     public abstract boolean login(String username, String password);
     public abstract void logout();
     public abstract boolean changePassword(String oldPassword, String newPassword);
-
-    public boolean isActive() {
-        return true;
-    }
 }
