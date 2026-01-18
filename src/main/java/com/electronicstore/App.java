@@ -2,17 +2,13 @@ package com.electronicstore;
 
 import com.electronicstore.model.users.User;
 import com.electronicstore.model.utils.SessionState;
-
-import com.electronicstore.view.screens.*;
 import com.electronicstore.view.components.CustomMenuBar;
+import com.electronicstore.view.screens.*;
 import javafx.application.Application;
 import javafx.application.Platform;
-
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
-
-
 
 public class App extends Application {
     private Stage primaryStage;
@@ -20,18 +16,27 @@ public class App extends Application {
     private CustomMenuBar menuBar;
     private SessionState sessionState;
 
-
     @Override
     public void start(Stage primaryStage) {
         try {
-            Platform.setImplicitExit(true);
+            this.primaryStage = primaryStage;
+            this.sessionState = SessionState.getInstance();
+
+            boolean testMode = Boolean.getBoolean("test.mode");
+
+            Platform.setImplicitExit(!testMode);
+
             primaryStage.setOnCloseRequest(event -> {
+                if (testMode) {
+                    // ✅ Prevent JUnit run from dying
+                    event.consume();
+                    return;
+                }
+
                 Platform.exit();
                 System.exit(0);
             });
 
-            this.primaryStage = primaryStage;
-            this.sessionState = SessionState.getInstance();
             initializeStage();
         } catch (Exception e) {
             e.printStackTrace();
@@ -78,11 +83,9 @@ public class App extends Application {
     }
 
     public void initializeUserInterface() {
-        // Create menu bar
         menuBar = new CustomMenuBar(primaryStage, this);
         mainLayout.setTop(menuBar);
 
-        // Show appropriate dashboard based on user role
         if (sessionState.isCashier()) {
             showCashierDashboard();
         } else if (sessionState.isManager()) {

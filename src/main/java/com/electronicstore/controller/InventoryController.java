@@ -238,4 +238,21 @@ public class InventoryController {
             e.printStackTrace();
         }
     }
+    public boolean deleteSupplier(String supplierId) {
+        if (!sessionState.isManager()) {
+            return false;
+        }
+
+        try {
+            List<Supplier> suppliers = loadSuppliers();
+            boolean removed = suppliers.removeIf(s -> s.getId().equals(supplierId));
+
+            FileHandler.saveListToFile(suppliers, SUPPLIERS_FILE);
+            return removed;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }
