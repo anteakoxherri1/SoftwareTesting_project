@@ -9,7 +9,7 @@ This project was developed as part of the **Software Testing and Quality Assuran
 - SpotBugs / SonarQube  
 - Git & GitHub  
 
-## 🧪 Testing Activities
+## Testing Activities
 
 ### 1. Static Testing
 - Static code analysis using **SpotBugs / SonarQube**
