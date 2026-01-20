@@ -10,6 +10,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class CashierViewDailyBillsTest {
+    // Equivalence class testing
 
     @Test
     public void hasBillsForToday_returnsTodayBills() {
@@ -67,5 +68,28 @@ public class CashierViewDailyBillsTest {
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void mixedBills_todayAndOld_returnsOnlyTodayBills() {
+        Cashier cashier = new Cashier(
+                "U1", "c1", "p",
+                "Cashier One", "c@x.com", "111", "SectorA"
+        );
+        cashier.clearBills();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Bill today = new Bill("B4", cashier.getId(), now, 100);
+        Bill old = new Bill("B5", cashier.getId(), now.minusDays(1), 999);
+
+        cashier.addBill(today);
+        cashier.addBill(old);
+
+        List<Bill> result = cashier.viewDailyBills();
+
+        assertEquals(1, result.size());
+        assertTrue(result.contains(today));
+        assertFalse(result.contains(old));
     }
 }
